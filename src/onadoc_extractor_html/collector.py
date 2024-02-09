@@ -1,6 +1,8 @@
 import dataclasses
 from bs4 import BeautifulSoup
 import sys
+import copy
+
 
 ignores = [
     "script",
@@ -13,6 +15,7 @@ ignores = [
     "form",
     "textarea",
     "input",
+    "a", ## ???
 ]
 pushes = [
     "li",
@@ -21,7 +24,7 @@ pushes = [
     "b",
     "span",
     "strong",
-    "a",
+    # "a",
     "abbr",
     "acronym",
     "address",
@@ -30,7 +33,10 @@ pushes = [
 @dataclasses.dataclass
 class Collector:
     texts: int = 0
-    text_length: int = 0
+    texts_length: int = 0
+
+    links: int = 0
+    links_length: int = 0
 
     counts: dict = dataclasses.field(default_factory=dict)
 
@@ -54,7 +60,7 @@ def phase_add_COLLECTED(node):
         if child.name:
             phase_add_COLLECTED(child)
 
-def phase_local_text_length(node, ignore_text:bool=False):
+def phase_local_texts_length(node, ignore_text:bool=False):
     """
     Compute the length of the text at the local node level
     """
@@ -70,13 +76,19 @@ def phase_local_text_length(node, ignore_text:bool=False):
     text = (node.string or "").strip()
     if text and not ignore_text:
         LOCAL.texts += 1
-        LOCAL.text_length += len(text)
+        LOCAL.texts_length += len(text)
 
     for child in node.children:
         if child.name:
-            phase_local_text_length(child, ignore_text=ignore_text)
+            phase_local_texts_length(child, ignore_text=ignore_text)
 
-def phase_collected_text_length(node, ignore_text:bool=False):
+def phase_local_links_length(node):
+    for link in node.find_all("a"):
+        LOCAL = link.LOCAL
+        LOCAL.links += 1
+        LOCAL.links_length += len(link.text)
+
+def phase_collected_texts_length(node, ignore_text:bool=False):
     """
     Compute the length of the text at the collected node level
 
@@ -88,24 +100,31 @@ def phase_collected_text_length(node, ignore_text:bool=False):
     if node.name in ignores:
        ignore_text = True
 
-    if not ignore_text and LOCAL.text_length >= 25:
-        current = node
-        while True:
-            COLLECTED = current.COLLECTED
+    current = node
+    while True:
+        COLLECTED = current.COLLECTED
+        if not ignore_text and LOCAL.texts_length >= 25:
             COLLECTED.texts += LOCAL.texts
-            COLLECTED.text_length += LOCAL.text_length
-            # print("heere", COLLECTED.text_length)
+            COLLECTED.texts_length += LOCAL.texts_length
+        COLLECTED.links += LOCAL.links
+        COLLECTED.links_length += LOCAL.links_length
+        # print("heere", COLLECTED.texts_length)
 
-            current = current.parent
-            if not current or current.name in [ "body", "html", ]:
-                break
+        current = current.parent
+        if not current or current.name in [ "body", "html", ]:
+            break
 
     for child in node.children:
         if child.name:
-            phase_collected_text_length(child, ignore_text=ignore_text)
+            phase_collected_texts_length(child, ignore_text=ignore_text)
 
 def dump_LOCAL(node, depth=0):
-    print("  " * depth, node.name, node.LOCAL.texts, node.LOCAL.text_length) 
+    LOCAL = node.LOCAL
+
+    print("  " * depth, node.name,
+        f"{LOCAL.texts}/{LOCAL.texts_length}", 
+        f"{LOCAL.links}/{LOCAL.links_length}", 
+    ) 
 
     for child in node.children:
         if child.name:
@@ -114,8 +133,11 @@ def dump_LOCAL(node, depth=0):
 def dump_COLLECTED(node, depth=0):
     COLLECTED = node.COLLECTED
 
-    if COLLECTED.text_length:
-        print("  " * depth, node.name, COLLECTED.texts, COLLECTED.text_length) 
+    if COLLECTED.texts_length:
+        print("  " * depth, node.name, 
+              f"{COLLECTED.texts}/{COLLECTED.texts_length}", 
+              f"{COLLECTED.links}/{COLLECTED.links_length}", 
+              (node.text or "")[:40]) 
 
     for child in node.children:
         if child.name:
@@ -127,39 +149,36 @@ def best_COLLECTED(node, depth=0, cutoff:float=0.5, verbose:bool=False):
     best = None
 
     for child in node.children:
-        if verbose and hasattr(child, "COLLECTED") and child.COLLECTED.text_length:
-            print(" " * depth, child.name, child.COLLECTED.text_length, file=sys.stderr)
+        if verbose and hasattr(child, "COLLECTED") and child.COLLECTED.texts_length:
+            print(" " * depth, child.name, child.COLLECTED.texts_length, file=sys.stderr)
 
         if not child.name:
             continue
-        if not child.COLLECTED.text_length:
+        if not child.COLLECTED.texts_length:
             continue
 
         if not best:
             best = child
-        elif child.COLLECTED.text_length > best.COLLECTED.text_length:
+        elif child.COLLECTED.texts_length > best.COLLECTED.texts_length:
             best = child
 
     if best:
         if verbose:
-            print(" " * depth, best.name, best.COLLECTED.text_length, file=sys.stderr)
+            print(" " * depth, best.name, best.COLLECTED.texts_length, file=sys.stderr)
 
         best_child = best_COLLECTED(best, depth + 1)
         if not best_child:
             return best
         
-        if best_child.COLLECTED.text_length < best.COLLECTED.text_length * cutoff:
+        if best_child.COLLECTED.texts_length < best.COLLECTED.texts_length * cutoff:
             return best
         else:
             return best_child
 
-def best_PARENT(node):
+def best_parents(node):
     """
-    This will try to get data that's not in the best node, but in the parent.
-    They must appear "before" the best node.
+    Just in case SPAN etc is selected
     """
-    import copy
-
     ## just in case a SPAN, etc is selected
     current = node
     while True:
@@ -168,6 +187,13 @@ def best_PARENT(node):
 
         current = current.parent
 
+    return current
+
+def patch_leading(node):
+    """
+    This will try to get data that's not in the best node, but in the parent.
+    They must appear "before" the best node.
+    """
 
     print("---", file=sys.stderr)
     inserts = []
@@ -207,7 +233,7 @@ def util_delete_nodes(node):
     """
     from bs4 import Comment
 
-    for child in node.find_all(['script', 'noscript', 'iframe', 'style', 'link', 'svg']):
+    for child in node.find_all(['script', 'noscript', 'iframe', 'style', 'link', 'svg', 'aside']):
         child.decompose()
     comments = node.find_all(string=lambda text: isinstance(text, Comment))
     for comment in comments:
@@ -217,6 +243,8 @@ def util_delete_nodes(node):
     for element in empty_elements:
         if not element.children:
             element.decompose()
+
+    return node
 
 def util_strip_node(node):
     """
@@ -231,6 +259,8 @@ def util_strip_node(node):
 
     for child in node.children:
         util_strip_node(child)
+    
+    return node
 
 if __name__ == '__main__':
     FILENAME = "../../tests/data/in/too-many-images.sample.html"
@@ -239,31 +269,39 @@ if __name__ == '__main__':
     FILENAME = "../../tests/data/in/the-hurricane-rubin-carter-denzel-washington.html"
     FILENAME = "../../tests/data/in/globe.html"
     FILENAME = "../../tests/data/in/cbc-mexico-1.html"
+    FILENAME = "../../tests/data/in/telegraph-sussex.html"
+    FILENAME = "../../tests/data/in/nationalpost.com.html"
     with open(FILENAME) as fin:
         soup = BeautifulSoup(fin, "lxml")
 
     body = soup.find("body")
     phase_add_LOCAL(body)
-    phase_local_text_length(body)
+    phase_local_texts_length(body)
+    phase_local_links_length(body)
 
     if False:
         dump_LOCAL(body)
 
     if True:
         phase_add_COLLECTED(body)
-        phase_collected_text_length(body)
+        phase_collected_texts_length(body)
     
-    if False:
-        dump_COLLECTED(body)
-
     if True:
         best = best_COLLECTED(body, cutoff=0.4)
-        best = best_PARENT(best)
-        util_strip_node(best)
-        util_delete_nodes(best)
+        dump_COLLECTED(best)
+        print(best.name, best.text[:64])
+
+
+    if False:
+        best = best_COLLECTED(body, cutoff=0.4)
+        # dump_COLLECTED(best)
+        best = best_parents(best)
+        best = patch_leading(best)
+        best = util_strip_node(best)
+        best = util_delete_nodes(best)
         # print(best.name)
 
-    if True:
+    if False:
         print("""
     <html>
         <head>
