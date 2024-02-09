@@ -4,12 +4,15 @@ import sys
 
 ignores = [
     "script",
-    "style"
+    "style",
     "svg",
     "noscript",
     "picture",
     "iframe",
     "object",
+    "form",
+    "textarea",
+    "input",
 ]
 pushes = [
     "li",
@@ -73,7 +76,7 @@ def phase_local_text_length(node, ignore_text:bool=False):
         if child.name:
             phase_local_text_length(child, ignore_text=ignore_text)
 
-def phase_collected_text_length(node):
+def phase_collected_text_length(node, ignore_text:bool=False):
     """
     Compute the length of the text at the collected node level
 
@@ -82,7 +85,10 @@ def phase_collected_text_length(node):
     """
     LOCAL = node.LOCAL
 
-    if LOCAL.text_length >= 25:
+    if node.name in ignores:
+       ignore_text = True
+
+    if not ignore_text and LOCAL.text_length >= 25:
         current = node
         while True:
             COLLECTED = current.COLLECTED
@@ -96,7 +102,7 @@ def phase_collected_text_length(node):
 
     for child in node.children:
         if child.name:
-            phase_collected_text_length(child)
+            phase_collected_text_length(child, ignore_text=ignore_text)
 
 def dump_LOCAL(node, depth=0):
     print("  " * depth, node.name, node.LOCAL.texts, node.LOCAL.text_length) 
@@ -116,6 +122,8 @@ def dump_COLLECTED(node, depth=0):
             dump_COLLECTED(child, depth + 1)
 
 def best_COLLECTED(node, depth=0, cutoff:float=0.5, verbose:bool=False):
+    """
+    """
     best = None
 
     for child in node.children:
@@ -144,7 +152,72 @@ def best_COLLECTED(node, depth=0, cutoff:float=0.5, verbose:bool=False):
             return best
         else:
             return best_child
-    
+
+def best_PARENT(node):
+    """
+    This will try to get data that's not in the best node, but in the parent.
+    They must appear "before" the best node.
+    """
+    import copy
+
+    ## just in case a SPAN, etc is selected
+    current = node
+    while True:
+        if current.name not in pushes:
+            break
+
+        current = current.parent
+
+
+    print("---", file=sys.stderr)
+    inserts = []
+    best = node
+    previous = node
+    current = node.parent
+    while True:
+        print(current.name, current.COLLECTED, file=sys.stderr)
+
+        for child in current.children:
+            if previous == child:
+                break
+            if child.name in [ "h1", "h2", "h3", "p", ]:
+                print("   HEADER", child.name, child.text, file=sys.stderr)
+                inserts.append(copy.copy(child))
+
+        previous = current
+        current = current.parent
+        if not current or current.name in [ "body", "html", "main", "article", ]:
+            break
+
+    for insert in reversed(inserts):
+        best.insert(0, insert)
+        
+    print("---", best.name, inserts, file=sys.stderr)
+
+    return best
+        
+def util_delete_nodes(node):
+    """
+    Delete children that are:
+    - script
+    - iframe
+    - comments
+    - style
+    - link
+    """
+    from bs4 import Comment
+
+    for child in node.find_all(['script', 'noscript', 'iframe', 'style', 'link', 'svg']):
+        child.decompose()
+    comments = node.find_all(string=lambda text: isinstance(text, Comment))
+    for comment in comments:
+        comment.extract()
+
+    empty_elements = node.find_all(['div', 'p'], string=lambda text: (text or "").strip() == '')
+    for element in empty_elements:
+        if not element.children:
+            element.decompose()
+
 def util_strip_node(node):
     """
     Remove all attributes except href and src
@@ -159,24 +232,38 @@ def util_strip_node(node):
     for child in node.children:
         util_strip_node(child)
 
-if __name__ == '__main__'
-    # with open("substack.html") as fin:
-    with open("globe.html") as fin:
+if __name__ == '__main__':
+    FILENAME = "../../tests/data/in/too-many-images.sample.html"
+    FILENAME = "../../tests/data/in/substack.html"
+    FILENAME = "../../tests/data/in/si-game.sample.html"
+    FILENAME = "../../tests/data/in/the-hurricane-rubin-carter-denzel-washington.html"
+    FILENAME = "../../tests/data/in/globe.html"
+    FILENAME = "../../tests/data/in/cbc-mexico-1.html"
+    with open(FILENAME) as fin:
         soup = BeautifulSoup(fin, "lxml")
 
     body = soup.find("body")
     phase_add_LOCAL(body)
     phase_local_text_length(body)
-    # dump_LOCAL(body)
+
+    if False:
+        dump_LOCAL(body)
 
     if True:
         phase_add_COLLECTED(body)
         phase_collected_text_length(body)
-        # dump_COLLECTED(body)
-        best = best_COLLECTED(body)
-        best = best.parent.parent
+    
+    if False:
+        dump_COLLECTED(body)
+
+    if True:
+        best = best_COLLECTED(body, cutoff=0.4)
+        best = best_PARENT(best)
         util_strip_node(best)
+        util_delete_nodes(best)
         # print(best.name)
+
+    if True:
         print("""
     <html>
         <head>
