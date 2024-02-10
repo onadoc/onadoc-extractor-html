@@ -14,19 +14,12 @@ def mutate_strip_attributes(
     if not node.name:
         return
     
-    names = names or [ "*" ]
-    for subnode in node.find_all(names):
-        for attr in list(subnode.attrs):
+    if not names or node.name in names:
+        for attr in list(node.attrs.keys()):
             if not retain or attr not in retain:
-                del node[attr]
-    
-    '''
-    for attr in list(node.attrs):
-        if not retain or attr not in retain:
-            del node[attr]
+                del node.attrs[attr]
 
     for child in node.children:
         mutate_strip_attributes(child)
-    '''
     
     return node

@@ -1,12 +1,16 @@
-import sys
+from typing import List
 import copy
+import re 
 from bs4 import PageElement
 
 import logging as logger
 
-def mutate_detect_duplicates(node:PageElement) -> PageElement:
+def mutate_detect_duplicates(
+    node:PageElement,
+    names:List[str] = [ "div" ],
+) -> PageElement:
     """
-    Detect duplicates in the tree
+    Detect duplicates DIVs
     """
     from mutate_strip_attributes import mutate_strip_attributes
 
@@ -14,35 +18,26 @@ def mutate_detect_duplicates(node:PageElement) -> PageElement:
 
     textd = {}
 
-    for node in node.find_all("div"):
-        node = copy.copy(node)
-        mutate_strip_attributes(node, retain=None)
-        text = node.prettify().strip()
-        text = (node.prettify() or "").strip()
+    for node in node.find_all(names):
+        cnode = mutate_strip_attributes(copy.copy(node), retain=None)
+
+        text = cnode.prettify().strip()
         if not text:
             continue
 
-        # text = text
-        if not ( node.name and text ):
-            continue
+        text = re.sub(r"\d", "#" , text)
+        # print(text[:128])
 
-        # if node.name in [ "h1", "h2", "h3 "]:
-        #     continue
+        textd.setdefault(text, []).append(node)
 
-        key = ( node.name, text )
-        textd.setdefault(key, []).append(node)
+    # import sys
+    # sys.exit()
 
-    for ( name, text ), nodes in textd.items():
+    for text, nodes in textd.items():
         if len(nodes) <= 1:
             continue
 
-        logger.debug(f"{L}: {name=} {repr(text[:20])}")
-
-    return
-    for key, value in textd.items():
-        if len(value) <= 1:
-            continue
-
-        for node in value:
+        logger.debug(f"{L}: {repr(text[:40])}")
+        for node in nodes:
             node.decompose()
 

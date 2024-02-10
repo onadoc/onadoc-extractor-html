@@ -1,159 +1,9 @@
-import dataclasses
 from bs4 import BeautifulSoup
 import sys
 import copy
 
-
-ignores = [
-    "script",
-    "style",
-    "svg",
-    "noscript",
-    "picture",
-    "iframe",
-    "object",
-    "form",
-    "textarea",
-    "input",
-    "button",
-    "a", ## ???
-]
-pushes = [
-    "li",
-    "em",
-    "i",
-    "b",
-    "span",
-    "strong",
-    # "a",
-    "abbr",
-    "acronym",
-    "address",
-]
-
-@dataclasses.dataclass
-class Collector:
-    texts: int = 0
-    texts_length: int = 0
-
-    links: int = 0
-    links_length: int = 0
-
-def count_children(node):
-    count = 0
-    for child in node.children:
-        count += 1
-        if child.name is not None:  # If the child is a tag (node)
-            count += count_children(child)  # Recursively count children
-    return count
-
-def phase_add_LOCAL(node):
-    """
-    Add LOCAL to each node in the tree.
-    """
-    node.LOCAL = Collector()
-
-    for child in node.children:
-        if child.name:
-            phase_add_LOCAL(child)
-
-def phase_add_COLLECTED(node):
-    """
-    Add COLLECTED to each node in the tree.
-    """
-    node.COLLECTED = Collector()
-
-    for child in node.children:
-        if child.name:
-            phase_add_COLLECTED(child)
-
-def phase_local_texts_length(node, ignore_text:bool=False):
-    """
-    Compute the length of the text at the local node level
-    """
-    local_node = node
-    while getattr(local_node, "name", None) in pushes:
-        local_node = local_node.parent
-
-    LOCAL = local_node.LOCAL
-
-    if node.name in ignores:
-       ignore_text = True
-
-    text = (node.string or "").strip()
-    if text and not ignore_text:
-        LOCAL.texts += 1
-        LOCAL.texts_length += len(text)
-
-    for child in node.children:
-        if child.name:
-            phase_local_texts_length(child, ignore_text=ignore_text)
-
-def phase_local_links_length(node):
-    for link in node.find_all("a"):
-        LOCAL = link.LOCAL
-        LOCAL.links += 1
-        LOCAL.links_length += len(link.text)
-
-def phase_collected_texts_length(node, ignore_text:bool=False):
-    """
-    Compute the length of the text at the collected node level
-
-    The herustic is to ignore the text length if the text length is less than 25 characters.
-    This then pushes those vales up to all parents
-    """
-    LOCAL = node.LOCAL
-
-    if node.name in ignores:
-       ignore_text = True
-
-    current = node
-    while True:
-        COLLECTED = current.COLLECTED
-        if not ignore_text and LOCAL.texts_length >= 25:
-            COLLECTED.texts += LOCAL.texts
-            COLLECTED.texts_length += LOCAL.texts_length
-        COLLECTED.links += LOCAL.links
-        COLLECTED.links_length += LOCAL.links_length
-        # print("heere", COLLECTED.texts_length)
-
-        current = current.parent
-        if not current or current.name in [ "body", "html", ]:
-            break
-
-    for child in node.children:
-        if child.name:
-            phase_collected_texts_length(child, ignore_text=ignore_text)
-
-def dump_LOCAL(node, depth=0):
-    LOCAL = node.LOCAL
-
-    print(
-        f"{depth:2d} ",
-        "  " * depth, node.name,
-        f"{LOCAL.texts}/{LOCAL.texts_length}", 
-        f"{LOCAL.links}/{LOCAL.links_length}", 
-        (node.text or "")[:20]
-    ) 
-
-    for child in node.children:
-        if child.name:
-            dump_LOCAL(child, depth + 1)
-
-def dump_COLLECTED(node, depth=0):
-    COLLECTED = node.COLLECTED
-
-    if COLLECTED.texts_length:
-        print(
-            f"{depth:2d} ",
-            "  " * depth, node.name, 
-              f"{COLLECTED.texts}/{COLLECTED.texts_length}", 
-              f"{COLLECTED.links}/{COLLECTED.links_length}", 
-              (node.text or "")[:40]) 
-
-    for child in node.children:
-        if child.name:
-            dump_COLLECTED(child, depth + 1)
+from dump import dump_COLLECTED, dump_LOCAL
+from facts import phase_add_LOCAL, phase_add_COLLECTED, collect_LOCAL, collect_COLLECTED
 
 def best_COLLECTED(node, depth=0, cutoff:float=0.5, verbose:bool=False):
     """
@@ -192,6 +42,8 @@ def best_parents(node):
     """
     Just in case SPAN etc is selected
     """
+    from data import pushes
+
     ## just in case a SPAN, etc is selected
     current = node
     while current:
@@ -327,23 +179,28 @@ if __name__ == '__main__':
         body = soup.find("body")
         # mutate_detect_duplicates(body)
         phase_add_LOCAL(body)
-        phase_local_texts_length(body)
-        phase_local_links_length(body)
+        collect_LOCAL(body)
         dump_LOCAL(body)
         
     def do_dump_collected(soup):
         body = soup.find("body")
-        # mutate_detect_duplicates(body)
+        mutate_detect_duplicates(body)
+        phase_detect_hidden(body)
         phase_add_LOCAL(body)
-        phase_local_texts_length(body)
-        phase_local_links_length(body)
+        collect_LOCAL(body)
 
         phase_add_COLLECTED(body)
-        phase_collected_texts_length(body)
+        collect_COLLECTED(body)
         # print(body)
     
         best = best_COLLECTED(body, cutoff=0.4)
-        dump_COLLECTED(best)
+        best = best_parents(best)
+
+        best = patch_leading(best)
+        best = util_strip_node(best)
+        best = util_delete_nodes(best)
+        best = util_delete_empty_nodes(best)        
+        dump_COLLECTED(best, max_depth=1)
 
     def do_extract(soup):
         body = soup.find("body")
@@ -352,18 +209,19 @@ if __name__ == '__main__':
         phase_detect_hidden(body)
         # print("H1", soup.find("h1"), file=sys.stderr)
         phase_add_LOCAL(body)
-        phase_local_texts_length(body)
-        phase_local_links_length(body)
+        collect_LOCAL(body)
 
         phase_add_COLLECTED(body)
-        phase_collected_texts_length(body)
+        collect_COLLECTED(body)
         
         if True:
             best = best_COLLECTED(body, cutoff=0.4)
             # dump_COLLECTED(best)
+
+        if True:
             best = best_parents(best)
 
-            best = patch_leading(best)
+            # best = patch_leading(best)
             best = util_strip_node(best)
             best = util_delete_nodes(best)
             best = util_delete_empty_nodes(best)
@@ -382,7 +240,6 @@ if __name__ == '__main__':
         # dump(body)
             
     FILENAME = "../../tests/data/in/too-many-images.sample.html"
-    FILENAME = "../../tests/data/in/telegraph-sussex.html"
     FILENAME = "../../tests/data/in/theatlantic.com.html"
     FILENAME = "../../tests/data/in/substack.html"
     FILENAME = "../../tests/data/in/si-game.sample.html"
@@ -390,6 +247,8 @@ if __name__ == '__main__':
     FILENAME = "../../tests/data/in/the-hurricane-rubin-carter-denzel-washington.html"
     FILENAME = "../../tests/data/in/cbc-mexico-1.html"
     FILENAME = "../../tests/data/in/nationalpost.com.html"
+    FILENAME = "../../tests/data/in/cnn.com.html"
+    FILENAME = "../../tests/data/in/telegraph-sussex.html"
 
     with open(FILENAME) as fin:
         ## soup = BeautifulSoup(fin, "lxml")
@@ -398,6 +257,6 @@ if __name__ == '__main__':
 
     # # print(soup.find("h1"))
     # do_dump_local(soup)
-    # do_dump_collected(soup)
-    do_extract(soup)
+    do_dump_collected(soup)
+    # do_extract(soup)
 
