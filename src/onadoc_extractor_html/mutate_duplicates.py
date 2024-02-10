@@ -5,7 +5,7 @@ from bs4 import PageElement
 
 import logging as logger
 
-def mutate_detect_duplicates(
+def mutate_duplicates(
     node:PageElement,
     names:List[str] = [ "div" ],
 ) -> PageElement:
