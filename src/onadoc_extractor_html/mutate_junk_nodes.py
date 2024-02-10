@@ -67,3 +67,29 @@ def mutate_junk_nodes(node:PageElement) -> PageElement:
         comment.extract()
 
     return node
+
+def mutate_empty_nodes(node:PageElement) -> PageElement:
+    """
+    Delete empty nodes
+    """
+
+    def deleter(n):
+        if n == node:
+            return
+        if n.name in [ "hr", "img" ]:
+            return
+        if len(list(n.children)):
+            return
+        if (n.text or "").strip():
+            return
+        
+        p = n.parent
+        n.decompose()
+
+        deleter(p)
+
+    for n in node.find_all():
+        deleter(n)
+
+    return node
+

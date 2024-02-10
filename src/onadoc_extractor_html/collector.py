@@ -3,53 +3,14 @@ import sys
 import copy
 
 from dump import dump_COLLECTED, dump_LOCAL
-from facts import phase_add_LOCAL, phase_add_COLLECTED, collect_LOCAL, collect_COLLECTED
+from find_best import best_COLLECTED, best_parents
+from facts import add_LOCAL, add_COLLECTED, collect_LOCAL, collect_COLLECTED
+
 from mutate_dissimilar_children import mutate_dissimilar_children
 from mutate_duplicates import mutate_duplicates
 from mutate_hidden import mutate_hidden
-from find_best import best_COLLECTED, best_parents
-from mutate_junk_nodes import mutate_find_leading, mutate_junk_nodes
-
-def util_delete_empty_nodes(node):
-    """
-    Delete empty nodes
-    """
-
-    def deleter(n):
-        if n == node:
-            return
-        if n.name in [ "hr", "img" ]:
-            return
-        if len(list(n.children)):
-            return
-        if (n.text or "").strip():
-            return
-        
-        p = n.parent
-        n.decompose()
-
-        deleter(p)
-
-    for n in node.find_all():
-        deleter(n)
-
-    return node
-
-def util_strip_node(node):
-    """
-    Remove all attributes except href and src
-    """
-    if not node.name:
-        return
-    
-    for attr in list(node.attrs):
-        if attr not in ["href", "src"]:
-            del node[attr]
-
-    for child in node.children:
-        util_strip_node(child)
-    
-    return node
+from mutate_junk_nodes import mutate_find_leading, mutate_junk_nodes, mutate_empty_nodes
+from mutate_strip_attributes import mutate_strip_attributes
 
 if __name__ == '__main__':
     import logging
@@ -58,7 +19,7 @@ if __name__ == '__main__':
     def do_dump_local(soup):
         body = soup.find("body")
         # mutate_detect_duplicates(body)
-        phase_add_LOCAL(body)
+        add_LOCAL(body)
         collect_LOCAL(body)
         dump_LOCAL(body)
         
@@ -66,10 +27,10 @@ if __name__ == '__main__':
         body = soup.find("body")
         mutate_duplicates(body)
         mutate_hidden(body)
-        phase_add_LOCAL(body)
+        add_LOCAL(body)
         collect_LOCAL(body)
 
-        phase_add_COLLECTED(body)
+        add_COLLECTED(body)
         collect_COLLECTED(body)
         # print(body)
     
@@ -78,9 +39,9 @@ if __name__ == '__main__':
         best = mutate_dissimilar_children(best)
 
         best = mutate_find_leading(best)
-        best = util_strip_node(best)
+        best = mutate_strip_attributes(best)
         best = mutate_junk_nodes(best)
-        best = util_delete_empty_nodes(best)
+        best = mutate_empty_nodes(best)
         dump_COLLECTED(best, max_depth=1)
 
     def do_extract(soup):
@@ -89,10 +50,10 @@ if __name__ == '__main__':
         mutate_duplicates(body)
         mutate_hidden(body)
         # print("H1", soup.find("h1"), file=sys.stderr)
-        phase_add_LOCAL(body)
+        add_LOCAL(body)
         collect_LOCAL(body)
 
-        phase_add_COLLECTED(body)
+        add_COLLECTED(body)
         collect_COLLECTED(body)
         
         if True:
@@ -104,9 +65,9 @@ if __name__ == '__main__':
             best = mutate_dissimilar_children(best)
 
             best = mutate_find_leading(best)
-            best = util_strip_node(best)
+            best = mutate_strip_attributes(best)
             best = mutate_junk_nodes(best)
-            best = util_delete_empty_nodes(best)
+            best = mutate_empty_nodes(best)
             # print(best.name)
 
         dump_COLLECTED(best, max_depth=1, file=sys.stderr)

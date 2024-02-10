@@ -15,7 +15,7 @@ class Collector:
     headers: int = 0
     paragraphs: int = 0
 
-def phase_add_LOCAL(node:PageElement) -> None:
+def add_LOCAL(node:PageElement) -> None:
     """
     Add LOCAL to each node in the tree.
     """
@@ -23,9 +23,9 @@ def phase_add_LOCAL(node:PageElement) -> None:
 
     for child in node.children:
         if child.name:
-            phase_add_LOCAL(child)
+            add_LOCAL(child)
 
-def phase_add_COLLECTED(node:PageElement) -> None:
+def add_COLLECTED(node:PageElement) -> None:
     """
     Add COLLECTED to each node in the tree.
     """
@@ -33,7 +33,7 @@ def phase_add_COLLECTED(node:PageElement) -> None:
 
     for child in node.children:
         if child.name:
-            phase_add_COLLECTED(child)
+            add_COLLECTED(child)
 
 def collect_LOCAL(node:PageElement, ignore_text:bool=False) -> None:
     """
