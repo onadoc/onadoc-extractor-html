@@ -15,6 +15,7 @@ ignores = [
     "form",
     "textarea",
     "input",
+    "button",
     "a", ## ???
 ]
 pushes = [
@@ -252,7 +253,7 @@ def util_delete_nodes(node):
     """
     from bs4 import Comment
 
-    for child in node.find_all(['script', 'noscript', 'iframe', 'style', 'link', 'svg', 'aside', "footer", "XXXheader", "nav"]):
+    for child in node.find_all(['script', 'noscript', 'button', 'form', 'iframe', 'style', 'link', 'svg', 'aside', "footer", "XXXheader", "nav"]):
         child.decompose()
     comments = node.find_all(string=lambda text: isinstance(text, Comment))
     for comment in comments:
@@ -300,30 +301,7 @@ def phase_detect_hidden(node):
         hidden.decompose()
 
 
-def phase_detect_duplicates(node):
-    """
-    Detect duplicates in the tree
-    """
-    textd = {}
-
-    for node in node.find_all():
-        text = (node.text or "").strip()
-        text = text
-        if not ( node.name and text ):
-            continue
-
-        if node.name in [ "h1", "h2", "h3 "]:
-            continue
-
-        key = ( node.name, text )
-        textd.setdefault(key, []).append(node)
-
-    for key, value in textd.items():
-        if len(value) <= 1:
-            continue
-
-        for node in value:
-            node.decompose()
+from mutate_detect_duplicates import mutate_detect_duplicates
 
 def util_strip_node(node):
     """
@@ -342,9 +320,12 @@ def util_strip_node(node):
     return node
 
 if __name__ == '__main__':
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
+
     def do_dump_local(soup):
         body = soup.find("body")
-        # phase_detect_duplicates(body)
+        # mutate_detect_duplicates(body)
         phase_add_LOCAL(body)
         phase_local_texts_length(body)
         phase_local_links_length(body)
@@ -352,7 +333,7 @@ if __name__ == '__main__':
         
     def do_dump_collected(soup):
         body = soup.find("body")
-        # phase_detect_duplicates(body)
+        # mutate_detect_duplicates(body)
         phase_add_LOCAL(body)
         phase_local_texts_length(body)
         phase_local_links_length(body)
@@ -367,7 +348,7 @@ if __name__ == '__main__':
     def do_extract(soup):
         body = soup.find("body")
         # print("H1", soup.find("h1"), file=sys.stderr)
-        # phase_detect_duplicates(body)
+        mutate_detect_duplicates(body)
         phase_detect_hidden(body)
         # print("H1", soup.find("h1"), file=sys.stderr)
         phase_add_LOCAL(body)
@@ -401,13 +382,14 @@ if __name__ == '__main__':
         # dump(body)
             
     FILENAME = "../../tests/data/in/too-many-images.sample.html"
+    FILENAME = "../../tests/data/in/telegraph-sussex.html"
+    FILENAME = "../../tests/data/in/theatlantic.com.html"
     FILENAME = "../../tests/data/in/substack.html"
     FILENAME = "../../tests/data/in/si-game.sample.html"
-    FILENAME = "../../tests/data/in/cbc-mexico-1.html"
     FILENAME = "../../tests/data/in/globe.html"
-    FILENAME = "../../tests/data/in/nationalpost.com.html"
-    FILENAME = "../../tests/data/in/telegraph-sussex.html"
     FILENAME = "../../tests/data/in/the-hurricane-rubin-carter-denzel-washington.html"
+    FILENAME = "../../tests/data/in/cbc-mexico-1.html"
+    FILENAME = "../../tests/data/in/nationalpost.com.html"
 
     with open(FILENAME) as fin:
         ## soup = BeautifulSoup(fin, "lxml")
