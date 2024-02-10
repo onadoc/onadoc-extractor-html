@@ -1,3 +1,9 @@
+import sys
+from typing import List
+from bs4 import PageElement
+
+import logging as logger
+
 import dataclasses
 from typing import List
 from bs4 import PageElement
@@ -101,3 +107,87 @@ def collect_COLLECTED(node:PageElement, ignore_text:bool=False) -> None:
     for child in node.children:
         if child.name:
             collect_COLLECTED(child, ignore_text=ignore_text)
+
+def dump(node:PageElement, field:str="COLLECTED", max_depth:int=999, file=sys.stdout):
+    def _doit(current:PageElement, depth:int=0):
+        if depth > max_depth:
+            return
+        
+        collector = getattr(current, field)
+        if not collector:
+            return
+
+        print(
+            f"{depth:2d} ",
+            "  " * depth,
+            current.name,
+            f"text={collector.texts}/{collector.texts_length}",
+            f"links={collector.links}/{collector.links_length}",
+            f"ps={collector.paragraphs}",
+            f"hds={collector.headers}",
+            repr((current.text or "").strip()[:40]),
+            file=file,
+        )
+
+        for child in current.children:
+            if child.name:
+                _doit(child, depth=depth + 1)
+
+    _doit(node)
+
+def dump_COLLECTED(node:PageElement, max_depth:int=999, file=sys.stdout):
+    dump(node, field="COLLECTED", max_depth=max_depth, file=file)
+
+def dump_LOCAL(node:PageElement, max_depth:int=999, file=sys.stdout):
+    dump(node, field="LOCAL", max_depth=max_depth, file=file)
+
+def best_COLLECTED(node:PageElement, depth=0, cutoff:float=0.5, verbose:bool=False) -> PageElement:
+    """
+    This is the core algorithm to find the best "text-y"" in the tree.
+    """
+    best = None
+
+    for child in node.children:
+        if verbose and hasattr(child, "COLLECTED") and child.COLLECTED.texts_length:
+            print(" " * depth, child.name, child.COLLECTED.texts_length, file=sys.stderr)
+
+        if not child.name:
+            continue
+        if not child.COLLECTED.texts_length:
+            continue
+
+        if not best:
+            best = child
+        elif child.COLLECTED.texts_length > best.COLLECTED.texts_length:
+            best = child
+
+    if best:
+        if verbose:
+            print(" " * depth, best.name, best.COLLECTED.texts_length, file=sys.stderr)
+
+        best_child = best_COLLECTED(best, depth + 1)
+        if not best_child:
+            return best
+        
+        if best_child.COLLECTED.texts_length < best.COLLECTED.texts_length * cutoff:
+            return best
+        else:
+            return best_child
+        
+def mutate_best_parent(node:PageElement) -> PageElement:
+    """
+    Just in case SPAN etc is selected, this will bubble up to the best parent
+    """
+    from data import pushes
+
+    if node.name not in pushes:
+        return node
+    
+    parent = node.parent
+
+    for child in node.children:
+        parent.append(child)
+
+    node.decompose()
+
+    return mutate_best_parent(parent)

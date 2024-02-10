@@ -2,9 +2,9 @@ from bs4 import BeautifulSoup
 import sys
 import copy
 
-from dump import dump_COLLECTED, dump_LOCAL
-from find_best import best_COLLECTED, best_parents
-from facts import add_LOCAL, add_COLLECTED, collect_LOCAL, collect_COLLECTED
+from collected import dump_COLLECTED, dump_LOCAL
+from collected import best_COLLECTED, mutate_best_parent
+from collected import add_LOCAL, add_COLLECTED, collect_LOCAL, collect_COLLECTED
 
 from mutate_dissimilar_children import mutate_dissimilar_children
 from mutate_duplicates import mutate_duplicates
@@ -35,7 +35,7 @@ if __name__ == '__main__':
         # print(body)
     
         best = best_COLLECTED(body, cutoff=0.4)
-        best = best_parents(best)
+        best = mutate_best_parent(best)
         best = mutate_dissimilar_children(best)
 
         best = mutate_find_leading(best)
@@ -61,7 +61,7 @@ if __name__ == '__main__':
             # dump_COLLECTED(best)
 
         if True:
-            best = best_parents(best)
+            best = mutate_best_parent(best)
             best = mutate_dissimilar_children(best)
 
             best = mutate_find_leading(best)
