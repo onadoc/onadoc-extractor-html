@@ -6,6 +6,8 @@ from collected import dump_COLLECTED, dump_LOCAL
 from collected import best_COLLECTED, mutate_best_parent
 from collected import add_LOCAL, add_COLLECTED, collect_LOCAL, collect_COLLECTED
 
+from flatten import flatten
+
 from mutate_dissimilar_children import mutate_dissimilar_children
 from mutate_duplicates import mutate_duplicates
 from mutate_hidden import mutate_hidden
@@ -42,6 +44,7 @@ if __name__ == '__main__':
         best = mutate_strip_attributes(best)
         best = mutate_junk_nodes(best)
         best = mutate_empty_nodes(best)
+
         dump_COLLECTED(best, max_depth=1)
 
     def do_extract(soup):
@@ -65,13 +68,27 @@ if __name__ == '__main__':
             best = mutate_dissimilar_children(best)
 
             best = mutate_find_leading(best)
+            dump_COLLECTED(best, max_depth=1, file=sys.stderr, _class=True)
             best = mutate_strip_attributes(best)
             best = mutate_junk_nodes(best)
             best = mutate_empty_nodes(best)
             # print(best.name)
 
         dump_COLLECTED(best, max_depth=1, file=sys.stderr)
+
         if True:
+            print("""
+<html>
+    <head>
+        <meta charset="utf-8">
+    </head>
+<body>""")
+            for node in flatten(best):
+                print(node.prettify())
+            print("""</body></html>""")
+
+
+        if False:
             print("""
 <html>
     <head>
@@ -85,15 +102,16 @@ if __name__ == '__main__':
             
     FILENAME = "../../tests/data/in/too-many-images.sample.html"
     FILENAME = "../../tests/data/in/telegraph-sussex.html"
-    FILENAME = "../../tests/data/in/nationalpost.com.html"
     FILENAME = "../../tests/data/in/theatlantic.com.html"
     FILENAME = "../../tests/data/in/cbc-mexico-1.html"
     FILENAME = "../../tests/data/in/the-hurricane-rubin-carter-denzel-washington.html"
     FILENAME = "../../tests/data/in/si-game.sample.html"
-    FILENAME = "../../tests/data/in/substack.html"
     FILENAME = "../../tests/data/in/grapevine.is.html"
     FILENAME = "../../tests/data/in/cnn.com.html"
     FILENAME = "../../tests/data/in/globe.html"
+    FILENAME = "../../tests/data/in/nationalpost.com.html"
+    FILENAME = "../../tests/data/in/substack.html"
+    FILENAME = "../../tests/data/in/torontosun.com-kinsella.html"
 
     with open(FILENAME) as fin:
         ## soup = BeautifulSoup(fin, "lxml")

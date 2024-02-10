@@ -108,7 +108,7 @@ def collect_COLLECTED(node:PageElement, ignore_text:bool=False) -> None:
         if child.name:
             collect_COLLECTED(child, ignore_text=ignore_text)
 
-def dump(node:PageElement, field:str="COLLECTED", max_depth:int=999, file=sys.stdout):
+def dump(node:PageElement, field:str="COLLECTED", max_depth:int=999, file=sys.stdout, _class=False):
     def _doit(current:PageElement, depth:int=0):
         if depth > max_depth:
             return
@@ -126,6 +126,7 @@ def dump(node:PageElement, field:str="COLLECTED", max_depth:int=999, file=sys.st
             f"ps={collector.paragraphs}",
             f"hds={collector.headers}",
             repr((current.text or "").strip()[:40]),
+            # current.attrs.get("class"),
             file=file,
         )
 
@@ -135,11 +136,11 @@ def dump(node:PageElement, field:str="COLLECTED", max_depth:int=999, file=sys.st
 
     _doit(node)
 
-def dump_COLLECTED(node:PageElement, max_depth:int=999, file=sys.stdout):
-    dump(node, field="COLLECTED", max_depth=max_depth, file=file)
+def dump_COLLECTED(node:PageElement, **ad):
+    dump(node, field="COLLECTED", **ad)
 
-def dump_LOCAL(node:PageElement, max_depth:int=999, file=sys.stdout):
-    dump(node, field="LOCAL", max_depth=max_depth, file=file)
+def dump_LOCAL(node:PageElement, **ad):
+    dump(node, field="LOCAL", **ad)
 
 def best_COLLECTED(node:PageElement, depth=0, cutoff:float=0.5, verbose:bool=False) -> PageElement:
     """
