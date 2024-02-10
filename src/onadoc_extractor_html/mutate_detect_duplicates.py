@@ -19,13 +19,13 @@ def mutate_detect_duplicates(
     textd = {}
 
     for node in node.find_all(names):
-        cnode = mutate_strip_attributes(copy.copy(node), retain=None)
+        cnode = mutate_strip_attributes(copy.copy(node))
 
         text = cnode.prettify().strip()
         if not text:
             continue
 
-        text = re.sub(r"\d", "#" , text)
+        text = re.sub(r"\d+", "#" , text)
         # print(text[:128])
 
         textd.setdefault(text, []).append(node)
@@ -37,7 +37,7 @@ def mutate_detect_duplicates(
         if len(nodes) <= 1:
             continue
 
-        logger.debug(f"{L}: {repr(text[:40])}")
+        logger.debug(f"{L}: {repr(text[:64])}")
         for node in nodes:
             node.decompose()
 

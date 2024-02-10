@@ -6,7 +6,7 @@ import logging as logger
 def mutate_strip_attributes(
     node:PageElement, 
     names:List[str] = None,
-    retain:List[str] = [ "href", "src "],
+    retain:List[str] = [ "href", "src", ],
 ) -> PageElement:
     """
     Remove all attributes except (normally) href and src

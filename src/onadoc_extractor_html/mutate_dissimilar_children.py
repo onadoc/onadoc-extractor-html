@@ -66,7 +66,7 @@ def mutate_dissimilar_children(
         keep = False
         if not child.name:
             keep = True
-        if child.name in [ "h1", "h2", "h3", "h4", "h5", "p", "table", "ul", "ol", ]:
+        if child.name in [ "h1", "h2", "h3", "h4", "h5", "p", "table", "ul", "ol", "picture", "img", ]:
             keep = True
         if child.name == prototype.name:
             if prototype.COLLECTED.paragraphs and not child.COLLECTED.paragraphs:
@@ -79,7 +79,7 @@ def mutate_dissimilar_children(
             continue
 
         if child.COLLECTED.headers:
-            for header in child.find_all(["h1", "h2", "h3", "h4"]):
+            for header in child.find_all(["h1", "h2", "h3", "h4", ]):
                 new_children.append(header)
 
                 logger.debug("RECOVER HEADER", header.name, header.text)

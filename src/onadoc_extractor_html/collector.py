@@ -45,6 +45,19 @@ def best_parents(node):
     """
     from data import pushes
 
+    if node.name not in pushes:
+        return node
+    
+    parent = node.parent
+
+    for child in node.children:
+        parent.append(child)
+
+    node.decompose()
+
+    return best_parents(parent)
+
+    '''
     ## just in case a SPAN, etc is selected
     current = node
     while current:
@@ -54,6 +67,7 @@ def best_parents(node):
         current = current.parent
 
     return current
+    '''
 
 def patch_leading(node):
     """
@@ -208,7 +222,7 @@ if __name__ == '__main__':
         best = util_strip_node(best)
         best = util_delete_nodes(best)
         best = util_delete_empty_nodes(best)
-        dump_COLLECTED(best, max_depth=2)
+        dump_COLLECTED(best, max_depth=1)
 
     def do_extract(soup):
         body = soup.find("body")
@@ -236,6 +250,7 @@ if __name__ == '__main__':
             best = util_delete_empty_nodes(best)
             # print(best.name)
 
+        dump_COLLECTED(best, max_depth=1, file=sys.stderr)
         if True:
             print("""
 <html>
@@ -249,15 +264,15 @@ if __name__ == '__main__':
         # dump(body)
             
     FILENAME = "../../tests/data/in/too-many-images.sample.html"
-    FILENAME = "../../tests/data/in/substack.html"
-    FILENAME = "../../tests/data/in/si-game.sample.html"
-    FILENAME = "../../tests/data/in/the-hurricane-rubin-carter-denzel-washington.html"
     FILENAME = "../../tests/data/in/telegraph-sussex.html"
     FILENAME = "../../tests/data/in/globe.html"
     FILENAME = "../../tests/data/in/cnn.com.html"
     FILENAME = "../../tests/data/in/nationalpost.com.html"
     FILENAME = "../../tests/data/in/theatlantic.com.html"
     FILENAME = "../../tests/data/in/cbc-mexico-1.html"
+    FILENAME = "../../tests/data/in/the-hurricane-rubin-carter-denzel-washington.html"
+    FILENAME = "../../tests/data/in/si-game.sample.html"
+    FILENAME = "../../tests/data/in/substack.html"
 
     with open(FILENAME) as fin:
         ## soup = BeautifulSoup(fin, "lxml")
@@ -266,6 +281,6 @@ if __name__ == '__main__':
 
     # # print(soup.find("h1"))
     # do_dump_local(soup)
-    do_dump_collected(soup)
-    ## do_extract(soup)
+    # do_dump_collected(soup)
+    do_extract(soup)
 
