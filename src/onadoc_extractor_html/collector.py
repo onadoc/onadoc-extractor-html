@@ -38,7 +38,13 @@ class Collector:
     links: int = 0
     links_length: int = 0
 
-    counts: dict = dataclasses.field(default_factory=dict)
+def count_children(node):
+    count = 0
+    for child in node.children:
+        count += 1
+        if child.name is not None:  # If the child is a tag (node)
+            count += count_children(child)  # Recursively count children
+    return count
 
 def phase_add_LOCAL(node):
     """
@@ -121,9 +127,12 @@ def phase_collected_texts_length(node, ignore_text:bool=False):
 def dump_LOCAL(node, depth=0):
     LOCAL = node.LOCAL
 
-    print("  " * depth, node.name,
+    print(
+        f"{depth:2d} ",
+        "  " * depth, node.name,
         f"{LOCAL.texts}/{LOCAL.texts_length}", 
         f"{LOCAL.links}/{LOCAL.links_length}", 
+        (node.text or "")[:20]
     ) 
 
     for child in node.children:
@@ -134,7 +143,9 @@ def dump_COLLECTED(node, depth=0):
     COLLECTED = node.COLLECTED
 
     if COLLECTED.texts_length:
-        print("  " * depth, node.name, 
+        print(
+            f"{depth:2d} ",
+            "  " * depth, node.name, 
               f"{COLLECTED.texts}/{COLLECTED.texts_length}", 
               f"{COLLECTED.links}/{COLLECTED.links_length}", 
               (node.text or "")[:40]) 
@@ -174,6 +185,7 @@ def best_COLLECTED(node, depth=0, cutoff:float=0.5, verbose:bool=False):
             return best
         else:
             return best_child
+        
 
 def best_parents(node):
     """
@@ -181,7 +193,7 @@ def best_parents(node):
     """
     ## just in case a SPAN, etc is selected
     current = node
-    while True:
+    while current:
         if current.name not in pushes:
             break
 
@@ -206,19 +218,26 @@ def patch_leading(node):
         for child in current.children:
             if previous == child:
                 break
-            if child.name in [ "h1", "h2", "h3", "p", ]:
-                print("   HEADER", child.name, child.text, file=sys.stderr)
+
+            if child.name in [ "h1", "h2", "h3", "h4" ]:
+                header = child
+            elif child.name:
+                header = child.find(["h1", "h2", "h3", "h4"])
+            else:
+                header = None
+            if header:
+                print("   HEADER", header.name, header.text, file=sys.stderr)
                 inserts.append(copy.copy(child))
 
         previous = current
         current = current.parent
-        if not current or current.name in [ "body", "html", "main", "article", ]:
+        if not current or current.name in [ "body", "html", "xmain", "xarticle", ]:
             break
 
     for insert in reversed(inserts):
         best.insert(0, insert)
         
-    print("---", best.name, inserts, file=sys.stderr)
+    # print("---", best.name, inserts, file=sys.stderr)
 
     return best
         
@@ -233,18 +252,78 @@ def util_delete_nodes(node):
     """
     from bs4 import Comment
 
-    for child in node.find_all(['script', 'noscript', 'iframe', 'style', 'link', 'svg', 'aside']):
+    for child in node.find_all(['script', 'noscript', 'iframe', 'style', 'link', 'svg', 'aside', "footer", "XXXheader", "nav"]):
         child.decompose()
     comments = node.find_all(string=lambda text: isinstance(text, Comment))
     for comment in comments:
         comment.extract()
 
-    empty_elements = node.find_all(['div', 'p'], string=lambda text: (text or "").strip() == '')
-    for element in empty_elements:
-        if not element.children:
-            element.decompose()
+    # for x in range(4):
+    #     empty_elements = node.find_all(['div', 'p', 'section'], text=lambda text: (text or "").strip() == '')
+    #     print("HERE:XXX", empty_elements, file=sys.stderr)
+    #     for element in empty_elements:
+    #         if not element.children:
+    #             element.decompose()
 
     return node
+
+def util_delete_empty_nodes(node):
+    """
+    Delete empty nodes
+    """
+
+    def deleter(n):
+        if n == node:
+            return
+        if n.name in [ "hr", "img" ]:
+            return
+        if len(list(n.children)):
+            return
+        if (n.text or "").strip():
+            return
+        
+        p = n.parent
+        n.decompose()
+
+        deleter(p)
+
+    for n in node.find_all():
+        deleter(n)
+
+    return node
+
+def phase_detect_hidden(node):
+    """
+    Detect node with 'hidden' class and remove them. Very tailwind
+    """
+    for hidden in node.find_all(class_="hidden"):
+        hidden.decompose()
+
+
+def phase_detect_duplicates(node):
+    """
+    Detect duplicates in the tree
+    """
+    textd = {}
+
+    for node in node.find_all():
+        text = (node.text or "").strip()
+        text = text
+        if not ( node.name and text ):
+            continue
+
+        if node.name in [ "h1", "h2", "h3 "]:
+            continue
+
+        key = ( node.name, text )
+        textd.setdefault(key, []).append(node)
+
+    for key, value in textd.items():
+        if len(value) <= 1:
+            continue
+
+        for node in value:
+            node.decompose()
 
 def util_strip_node(node):
     """
@@ -263,55 +342,80 @@ def util_strip_node(node):
     return node
 
 if __name__ == '__main__':
+    def do_dump_local(soup):
+        body = soup.find("body")
+        # phase_detect_duplicates(body)
+        phase_add_LOCAL(body)
+        phase_local_texts_length(body)
+        phase_local_links_length(body)
+        dump_LOCAL(body)
+        
+    def do_dump_collected(soup):
+        body = soup.find("body")
+        # phase_detect_duplicates(body)
+        phase_add_LOCAL(body)
+        phase_local_texts_length(body)
+        phase_local_links_length(body)
+
+        phase_add_COLLECTED(body)
+        phase_collected_texts_length(body)
+        # print(body)
+    
+        best = best_COLLECTED(body, cutoff=0.4)
+        dump_COLLECTED(best)
+
+    def do_extract(soup):
+        body = soup.find("body")
+        # print("H1", soup.find("h1"), file=sys.stderr)
+        # phase_detect_duplicates(body)
+        phase_detect_hidden(body)
+        # print("H1", soup.find("h1"), file=sys.stderr)
+        phase_add_LOCAL(body)
+        phase_local_texts_length(body)
+        phase_local_links_length(body)
+
+        phase_add_COLLECTED(body)
+        phase_collected_texts_length(body)
+        
+        if True:
+            best = best_COLLECTED(body, cutoff=0.4)
+            # dump_COLLECTED(best)
+            best = best_parents(best)
+
+            best = patch_leading(best)
+            best = util_strip_node(best)
+            best = util_delete_nodes(best)
+            best = util_delete_empty_nodes(best)
+            # print(best.name)
+
+        if True:
+            print("""
+<html>
+    <head>
+        <meta charset="utf-8">
+    </head>
+<body>""")
+            print(best.prettify())
+            print("""</body></html>""")
+        # collect(body)
+        # dump(body)
+            
     FILENAME = "../../tests/data/in/too-many-images.sample.html"
     FILENAME = "../../tests/data/in/substack.html"
     FILENAME = "../../tests/data/in/si-game.sample.html"
-    FILENAME = "../../tests/data/in/the-hurricane-rubin-carter-denzel-washington.html"
-    FILENAME = "../../tests/data/in/globe.html"
     FILENAME = "../../tests/data/in/cbc-mexico-1.html"
-    FILENAME = "../../tests/data/in/telegraph-sussex.html"
+    FILENAME = "../../tests/data/in/globe.html"
     FILENAME = "../../tests/data/in/nationalpost.com.html"
+    FILENAME = "../../tests/data/in/telegraph-sussex.html"
+    FILENAME = "../../tests/data/in/the-hurricane-rubin-carter-denzel-washington.html"
+
     with open(FILENAME) as fin:
-        soup = BeautifulSoup(fin, "lxml")
-
-    body = soup.find("body")
-    phase_add_LOCAL(body)
-    phase_local_texts_length(body)
-    phase_local_links_length(body)
-
-    if False:
-        dump_LOCAL(body)
-
-    if True:
-        phase_add_COLLECTED(body)
-        phase_collected_texts_length(body)
-    
-    if True:
-        best = best_COLLECTED(body, cutoff=0.4)
-        dump_COLLECTED(best)
-        print(best.name, best.text[:64])
+        ## soup = BeautifulSoup(fin, "lxml")
+        soup = BeautifulSoup(fin, 'html.parser')
 
 
-    if False:
-        best = best_COLLECTED(body, cutoff=0.4)
-        # dump_COLLECTED(best)
-        best = best_parents(best)
-        best = patch_leading(best)
-        best = util_strip_node(best)
-        best = util_delete_nodes(best)
-        # print(best.name)
+    # # print(soup.find("h1"))
+    # do_dump_local(soup)
+    # do_dump_collected(soup)
+    do_extract(soup)
 
-    if False:
-        print("""
-    <html>
-        <head>
-            <meta charset="utf-8">
-        </head>
-        <body>
-        """)
-        print(best.prettify())
-        print("""
-        </body>
-    """)
-    # collect(body)
-    # dump(body)
