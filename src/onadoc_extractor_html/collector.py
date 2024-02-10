@@ -4,6 +4,7 @@ import copy
 
 from dump import dump_COLLECTED, dump_LOCAL
 from facts import phase_add_LOCAL, phase_add_COLLECTED, collect_LOCAL, collect_COLLECTED
+from mutate_dissimilar_children import mutate_dissimilar_children
 
 def best_COLLECTED(node, depth=0, cutoff:float=0.5, verbose:bool=False):
     """
@@ -79,8 +80,11 @@ def patch_leading(node):
             else:
                 header = None
             if header:
-                print("   HEADER", header.name, header.text, file=sys.stderr)
-                inserts.append(copy.copy(child))
+                print("   HEADER", header.name, repr(header.text), file=sys.stderr)
+                cheader = copy.copy(header)
+                cheader.LOCAL = copy.copy(header.LOCAL)
+                cheader.COLLECTED = copy.copy(header.COLLECTED)
+                inserts.append(cheader)
 
         previous = current
         current = current.parent
@@ -89,6 +93,9 @@ def patch_leading(node):
 
     for insert in reversed(inserts):
         best.insert(0, insert)
+        # print("INSERTING", insert)
+
+    # print("BEST", best)
         
     # print("---", best.name, inserts, file=sys.stderr)
 
@@ -195,12 +202,13 @@ if __name__ == '__main__':
     
         best = best_COLLECTED(body, cutoff=0.4)
         best = best_parents(best)
+        best = mutate_dissimilar_children(best)
 
         best = patch_leading(best)
         best = util_strip_node(best)
         best = util_delete_nodes(best)
-        best = util_delete_empty_nodes(best)        
-        dump_COLLECTED(best, max_depth=1)
+        best = util_delete_empty_nodes(best)
+        dump_COLLECTED(best, max_depth=2)
 
     def do_extract(soup):
         body = soup.find("body")
@@ -220,8 +228,9 @@ if __name__ == '__main__':
 
         if True:
             best = best_parents(best)
+            best = mutate_dissimilar_children(best)
 
-            # best = patch_leading(best)
+            best = patch_leading(best)
             best = util_strip_node(best)
             best = util_delete_nodes(best)
             best = util_delete_empty_nodes(best)
@@ -240,15 +249,15 @@ if __name__ == '__main__':
         # dump(body)
             
     FILENAME = "../../tests/data/in/too-many-images.sample.html"
-    FILENAME = "../../tests/data/in/theatlantic.com.html"
     FILENAME = "../../tests/data/in/substack.html"
     FILENAME = "../../tests/data/in/si-game.sample.html"
-    FILENAME = "../../tests/data/in/globe.html"
     FILENAME = "../../tests/data/in/the-hurricane-rubin-carter-denzel-washington.html"
-    FILENAME = "../../tests/data/in/cbc-mexico-1.html"
-    FILENAME = "../../tests/data/in/nationalpost.com.html"
-    FILENAME = "../../tests/data/in/cnn.com.html"
     FILENAME = "../../tests/data/in/telegraph-sussex.html"
+    FILENAME = "../../tests/data/in/globe.html"
+    FILENAME = "../../tests/data/in/cnn.com.html"
+    FILENAME = "../../tests/data/in/nationalpost.com.html"
+    FILENAME = "../../tests/data/in/theatlantic.com.html"
+    FILENAME = "../../tests/data/in/cbc-mexico-1.html"
 
     with open(FILENAME) as fin:
         ## soup = BeautifulSoup(fin, "lxml")
@@ -258,5 +267,5 @@ if __name__ == '__main__':
     # # print(soup.find("h1"))
     # do_dump_local(soup)
     do_dump_collected(soup)
-    # do_extract(soup)
+    ## do_extract(soup)
 

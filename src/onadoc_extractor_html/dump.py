@@ -12,17 +12,16 @@ def dump(node:PageElement, field:str="COLLECTED", max_depth:int=999):
         if not collector:
             return
 
-        if collector.texts_length:
-            print(
-                f"{depth:2d} ",
-                "  " * depth,
-                current.name,
-                f"text={collector.texts}/{collector.texts_length}",
-                f"links={collector.links}/{collector.links_length}",
-                f"ps={collector.paragraphs}",
-                f"hds={collector.headers}",
-                repr((current.text or "").strip()[:40]),
-            )
+        print(
+            f"{depth:2d} ",
+            "  " * depth,
+            current.name,
+            f"text={collector.texts}/{collector.texts_length}",
+            f"links={collector.links}/{collector.links_length}",
+            f"ps={collector.paragraphs}",
+            f"hds={collector.headers}",
+            repr((current.text or "").strip()[:40]),
+        )
 
         for child in current.children:
             if child.name:
