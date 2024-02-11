@@ -13,6 +13,7 @@ from mutate_duplicates import mutate_duplicates
 from mutate_hidden import mutate_hidden
 from mutate_junk_nodes import mutate_find_leading, mutate_junk_nodes, mutate_empty_nodes
 from mutate_strip_attributes import mutate_strip_attributes
+from mutate_link_blocks import mutate_link_blocks
 
 if __name__ == '__main__':
     import logging
@@ -70,13 +71,14 @@ if __name__ == '__main__':
             best = mutate_find_leading(best)
             # dump_COLLECTED(best, max_depth=4, file=sys.stderr, _class=True)
             best = mutate_strip_attributes(best)
+            best = mutate_link_blocks(best)
             best = mutate_junk_nodes(best)
             best = mutate_empty_nodes(best)
             # print(best.name)
 
         dump_COLLECTED(best, max_depth=4, file=sys.stderr)
 
-        if False:
+        if True:
             print("""
 <html>
     <head>
@@ -107,9 +109,11 @@ if __name__ == '__main__':
     FILENAME = "../../tests/data/in/grapevine.is.html"
     FILENAME = "../../tests/data/in/cnn.com.html"
     FILENAME = "../../tests/data/in/globe.html"
-    FILENAME = "../../tests/data/in/nationalpost.com.html"
-    FILENAME = "../../tests/data/in/substack.html"
     FILENAME = "../../tests/data/in/torontosun.com-kinsella.html"
+    FILENAME = "../../tests/data/in/substack.html"
+    FILENAME = "../../tests/data/in/nationalpost.com.html"
+    FILENAME = "../../tests/data/in/timesnownews.com.html"
+    FILENAME = "../../tests/data/in/dailymail.co.uk.html"
 
     with open(FILENAME) as fin:
         ## soup = BeautifulSoup(fin, "lxml")
