@@ -21,7 +21,7 @@ def flatten(node:PageElement) -> Iterable[PageElement]:
     elif node.name in [ "figcaption", ]:
         node.tag = "p"
         yield node
-    elif node.name in [ "a", "b", "em", "i", "img", ]:
+    elif node.name in [ "a", "b", "em", "i", "img", "pre" ]:
         p_node = _soup.new_tag("p")
         p_node.append(node)
 

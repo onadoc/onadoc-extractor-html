@@ -30,12 +30,16 @@ def mutate_duplicates(
 
         textd.setdefault(text, []).append(node)
 
-    # import sys
-    # sys.exit()
-
     for text, nodes in textd.items():
         if len(nodes) <= 1:
             continue
+
+        # n = nodes[0]
+        # if img := n.find("img"):
+        #     import sys
+        #     print("---", file=sys.stderr)
+        #     print(img.prettify(), file=sys.stderr)
+        #     print("---", file=sys.stderr)
 
         logger.debug(f"{L}: {repr(text[:64])}")
         for node in nodes:

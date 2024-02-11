@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import sys
 import copy
+import os
 
 from collected import dump_COLLECTED, dump_LOCAL
 from collected import best_COLLECTED, mutate_best_parent
@@ -100,28 +101,25 @@ if __name__ == '__main__':
         # collect(body)
         # dump(body)
             
-    FILENAME = "../../tests/data/in/too-many-images.sample.html"
-    FILENAME = "../../tests/data/in/telegraph-sussex.html"
-    FILENAME = "../../tests/data/in/theatlantic.com.html"
-    FILENAME = "../../tests/data/in/cbc-mexico-1.html"
-    FILENAME = "../../tests/data/in/the-hurricane-rubin-carter-denzel-washington.html"
-    FILENAME = "../../tests/data/in/si-game.sample.html"
-    FILENAME = "../../tests/data/in/grapevine.is.html"
-    FILENAME = "../../tests/data/in/cnn.com.html"
-    FILENAME = "../../tests/data/in/globe.html"
-    FILENAME = "../../tests/data/in/torontosun.com-kinsella.html"
-    FILENAME = "../../tests/data/in/substack.html"
-    FILENAME = "../../tests/data/in/nationalpost.com.html"
-    FILENAME = "../../tests/data/in/timesnownews.com.html"
-    FILENAME = "../../tests/data/in/dailymail.co.uk.html"
+    FOLDER = "tests/data/"
+    FILENAME = "too-many-images.sample.html"
+    FILENAME = "telegraph-sussex.html"
+    FILENAME = "theatlantic.com.html"
+    FILENAME = "cbc-mexico-1.html"
+    FILENAME = "the-hurricane-rubin-carter-denzel-washington.html"
+    FILENAME = "si-game.sample.html"
+    FILENAME = "grapevine.is.html"
+    FILENAME = "cnn.com.html"
+    FILENAME = "globe.html"
+    FILENAME = "timesnownews.com.html"
+    FILENAME = "nationalpost.com.html"
+    FILENAME = "substack.html"
+    FILENAME = "dailymail.co.uk.html"
+    FILENAME = "digitalocean.com-wireguard.html"
+    FILENAME = "torontosun.com-kinsella.html"
 
-    with open(FILENAME) as fin:
-        ## soup = BeautifulSoup(fin, "lxml")
+    with open(os.path.join(FOLDER, FILENAME)) as fin:
         soup = BeautifulSoup(fin, 'html.parser')
 
-
-    # # print(soup.find("h1"))
-    # do_dump_local(soup)
-    # do_dump_collected(soup)
     do_extract(soup)
 

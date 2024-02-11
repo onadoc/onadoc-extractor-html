@@ -28,6 +28,49 @@ def order_by_paragraphs(nodes:Iterable[PageElement]) -> List[PageElement]:
 
     return nodes
 
+def is_image_block(node:PageElement) -> bool:
+    """
+    This is a hack for now - really we want to see if the images are big.
+
+    The core observation is that an image block has a single IMG tag
+    """
+    L = "is_image_block"
+
+    image_like = 0
+    not_image_like = 0
+    social = 0
+    nodes = 0
+
+    for child in node.find_all():
+        nodes += 1
+
+        if child.name in [ "li", "ol", "u", "table", ]:
+            not_image_like += 1
+        elif child.name == "img":
+            alt = (child.get("alt") or "").lower()
+            if alt in [ 
+                "x", "reddit", "twitter", "facebook", "email", "pinterest", 
+                "instagram", "whatsapp", "linkedin", "tumblr", "print", "share",
+            ]:
+                social += 1
+                continue
+
+            image_like += 1
+
+    logger.info(f"{L}: {image_like=} {not_image_like=} {social=} {nodes=}")
+
+    if social > 1:
+        return False
+    
+    if image_like == 1:
+        return True
+    
+        # import sys
+        # print(node.prettify(), file=sys.stderr)
+        # return True
+    
+    return False
+
 def mutate_dissimilar_children(
     node:PageElement,
 ) -> PageElement:
@@ -73,6 +116,9 @@ def mutate_dissimilar_children(
             else:
                 keep = True
 
+        if not keep and is_image_block(child):
+            keep = True
+
         if keep:
             new_children.append(child)
             continue
@@ -83,7 +129,13 @@ def mutate_dissimilar_children(
 
                 logger.debug(f"{L}: RECOVER HEADER {header.name} {header.text[:16]}")
 
-        logger.debug(f"{L}: removing {child.name} {child.COLLECTED.texts_length}")
+        logger.debug(f"{L}: removing {child.name} {repr(child.prettify()[:50])}")
+        import sys
+        from collector import dump_COLLECTED
+        dump_COLLECTED(child, file=sys.stderr)
+        # print("---", file=sys.stderr)
+        # print(child.prettify(), file=sys.stderr)
+        # print("---", file=sys.stderr)
         # child.decompose()
 
     ## replace node's children with new_children
