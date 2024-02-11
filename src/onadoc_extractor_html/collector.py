@@ -68,15 +68,15 @@ if __name__ == '__main__':
             best = mutate_dissimilar_children(best)
 
             best = mutate_find_leading(best)
-            dump_COLLECTED(best, max_depth=1, file=sys.stderr, _class=True)
+            # dump_COLLECTED(best, max_depth=4, file=sys.stderr, _class=True)
             best = mutate_strip_attributes(best)
             best = mutate_junk_nodes(best)
             best = mutate_empty_nodes(best)
             # print(best.name)
 
-        dump_COLLECTED(best, max_depth=1, file=sys.stderr)
+        dump_COLLECTED(best, max_depth=4, file=sys.stderr)
 
-        if True:
+        if False:
             print("""
 <html>
     <head>
@@ -86,9 +86,7 @@ if __name__ == '__main__':
             for node in flatten(best):
                 print(node.prettify())
             print("""</body></html>""")
-
-
-        if False:
+        else:
             print("""
 <html>
     <head>

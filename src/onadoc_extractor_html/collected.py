@@ -53,6 +53,11 @@ def collect_LOCAL(node:PageElement, ignore_text:bool=False) -> None:
 
     LOCAL = local_node.LOCAL
 
+    ## we can accept A here, but not later
+    if not ignore_text and node.name in [ "a", ]: 
+        LOCAL.links += 1
+        LOCAL.links_length += len(node.text)
+
     if node.name in ignores:
        ignore_text = True
 
@@ -66,9 +71,6 @@ def collect_LOCAL(node:PageElement, ignore_text:bool=False) -> None:
             LOCAL.headers += 1
         if node.name in [ "p", ]:
             LOCAL.paragraphs += 1
-        if node.name in [ "a", ]:
-            LOCAL.links += 1
-            LOCAL.links_length += len(node.text)
 
     for child in node.children:
         if child.name:

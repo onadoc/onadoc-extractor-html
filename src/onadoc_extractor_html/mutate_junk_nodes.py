@@ -3,6 +3,8 @@ import copy
 
 from bs4 import PageElement
 
+import logging as logger
+
 def mutate_find_leading(node:PageElement) -> PageElement:
     """
     This will try to get data that's not in the best node, but in the parent.
@@ -58,10 +60,14 @@ def mutate_junk_nodes(node:PageElement) -> PageElement:
     - style
     - link
     """
+    L = "mutate_junk_nodes"
+
     from bs4 import Comment
 
     for child in node.find_all(['script', 'noscript', 'button', 'form', 'iframe', 'style', 'link', 'svg', 'aside', "footer", "XXXheader", "nav"]):
+        logger.debug(f"{L}: REMOVE {child.name}")
         child.decompose()
+
     comments = node.find_all(string=lambda text: isinstance(text, Comment))
     for comment in comments:
         comment.extract()

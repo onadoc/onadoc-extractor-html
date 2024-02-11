@@ -28,7 +28,6 @@ def order_by_paragraphs(nodes:Iterable[PageElement]) -> List[PageElement]:
 
     return nodes
 
-
 def mutate_dissimilar_children(
     node:PageElement,
 ) -> PageElement:
@@ -82,7 +81,7 @@ def mutate_dissimilar_children(
             for header in child.find_all(["h1", "h2", "h3", "h4", ]):
                 new_children.append(header)
 
-                logger.debug("RECOVER HEADER", header.name, header.text)
+                logger.debug(f"{L}: RECOVER HEADER {header.name} {header.text[:16]}")
 
         logger.debug(f"{L}: removing {child.name} {child.COLLECTED.texts_length}")
         # child.decompose()
