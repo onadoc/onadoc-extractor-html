@@ -85,5 +85,22 @@ if __name__ == "__main__":
         soup = BeautifulSoup(data, "html.parser")
         collectors.dump_collected(soup, max_depth=args.max_depth)
     else:
+        from .flatten import flatten
+
         soup = BeautifulSoup(data, "html.parser")
-        collectors.extract(soup, max_depth=args.max_depth, verbose=args.verbose)
+        best = collectors.extract(soup)
+
+        if args.verbose:
+            collectors.dump_collected(soup, max_depth=args.max_depth)
+
+        print("""
+<html>
+<head>
+    <meta charset="utf-8">
+</head>
+<body>""")
+        for node in flatten(best):
+            print(node.prettify())
+            
+        print("""</body></html>""")
+
