@@ -62,23 +62,21 @@ def extract(soup:PageElement, verbose:bool=False, max_depth:int=999):
     add_COLLECTED(body)
     collect_COLLECTED(body)
     
-    if True:
-        best = best_COLLECTED(body, cutoff=0.4)
-        # dump_COLLECTED(best)
+    best = best_COLLECTED(body, cutoff=0.4)
 
-    if True:
-        best = mutate_best_parent(best)
-        best = mutate_dissimilar_children(best)
+    best = mutate_best_parent(best)
+    best = mutate_dissimilar_children(best)
 
-        best = mutate_find_leading(best)
-        # dump_COLLECTED(best, max_depth=4, file=sys.stderr, _class=True)
-        best = mutate_strip_attributes(best)
-        best = mutate_link_blocks(best)
-        best = mutate_junk_nodes(best)
-        best = mutate_empty_nodes(best)
-        # print(best.name)
+    best = mutate_find_leading(best)
+    # dump_COLLECTED(best, max_depth=4, file=sys.stderr, _class=True)
+    best = mutate_strip_attributes(best)
+    best = mutate_link_blocks(best)
+    best = mutate_junk_nodes(best)
+    best = mutate_empty_nodes(best)
+    # print(best.name)
 
-    dump_COLLECTED(best, max_depth=4, file=sys.stderr)
+    if verbose:
+        dump_COLLECTED(best, max_depth=max_depth, file=sys.stderr)
 
     if True:
         print("""

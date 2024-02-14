@@ -57,7 +57,7 @@ def is_image_block(node:PageElement) -> bool:
 
             image_like += 1
 
-    logger.info(f"{L}: {image_like=} {not_image_like=} {social=} {nodes=}")
+    logger.debug(f"{L}: {image_like=} {not_image_like=} {social=} {nodes=}")
 
     if social > 1:
         return False
@@ -130,9 +130,9 @@ def mutate_dissimilar_children(
                 logger.debug(f"{L}: RECOVER HEADER {header.name} {header.text[:16]}")
 
         logger.debug(f"{L}: removing {child.name} {repr(child.prettify()[:50])}")
-        import sys
-        from onadoc_extractor_html.collectors import dump_COLLECTED
-        dump_COLLECTED(child, file=sys.stderr)
+        # import sys
+        # from onadoc_extractor_html.collectors import dump_COLLECTED
+        # dump_COLLECTED(child, file=sys.stderr)
         # print("---", file=sys.stderr)
         # print(child.prettify(), file=sys.stderr)
         # print("---", file=sys.stderr)

@@ -10,14 +10,14 @@ def mutate_find_leading(node:PageElement) -> PageElement:
     This will try to get data that's not in the best node, but in the parent.
     They must appear "before" the best node.
     """
+    L = "mutate_find_leading"
 
-    print("---", "patch_leading", file=sys.stderr)
     inserts = []
     best = node
     previous = node
     current = node.parent
     while True:
-        print(current.name, current.COLLECTED, file=sys.stderr)
+        logger.debug(f"{L}: {current.name} {current.COLLECTED}")
 
         for child in current.children:
             if previous == child:
@@ -30,7 +30,7 @@ def mutate_find_leading(node:PageElement) -> PageElement:
             else:
                 header = None
             if header:
-                print("   HEADER", header.name, repr(header.text), file=sys.stderr)
+                logger.debug(f"{L}: HEADER {header.name} {repr(header.text)}")
                 cheader = copy.copy(header)
                 cheader.LOCAL = copy.copy(header.LOCAL)
                 cheader.COLLECTED = copy.copy(header.COLLECTED)
