@@ -45,7 +45,7 @@ def collect_LOCAL(node:PageElement, ignore_text:bool=False) -> None:
     """
     Compute the length of the text at the local node level
     """
-    from data import ignores, pushes
+    from .data import ignores, pushes
 
     local_node = node
     while getattr(local_node, "name", None) in pushes:
@@ -83,7 +83,7 @@ def collect_COLLECTED(node:PageElement, ignore_text:bool=False) -> None:
     The herustic is to ignore the text length if the text length is less than 25 characters.
     This then pushes those vales up to all parents
     """
-    from data import ignores, pushes
+    from .data import ignores, pushes
 
     LOCAL = node.LOCAL
 
@@ -181,7 +181,7 @@ def mutate_best_parent(node:PageElement) -> PageElement:
     """
     Just in case SPAN etc is selected, this will bubble up to the best parent
     """
-    from data import pushes
+    from .data import pushes
 
     if node.name not in pushes:
         return node

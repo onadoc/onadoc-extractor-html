@@ -131,7 +131,7 @@ def mutate_dissimilar_children(
 
         logger.debug(f"{L}: removing {child.name} {repr(child.prettify()[:50])}")
         import sys
-        from collector import dump_COLLECTED
+        from onadoc_extractor_html.collectors import dump_COLLECTED
         dump_COLLECTED(child, file=sys.stderr)
         # print("---", file=sys.stderr)
         # print(child.prettify(), file=sys.stderr)

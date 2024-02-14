@@ -12,7 +12,7 @@ def mutate_duplicates(
     """
     Detect duplicates DIVs
     """
-    from mutate_strip_attributes import mutate_strip_attributes
+    from .mutate_strip_attributes import mutate_strip_attributes
 
     L = "mutate_detect_duplicates"
 
