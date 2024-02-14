@@ -38,6 +38,10 @@ if __name__ == "__main__":
         help='load from this file',
     )
     parser.add_argument(
+        '--test',
+        help='load from test folder',
+    )
+    parser.add_argument(
         '-v', '--verbose',
         action='store_true',
         help='print extra debugging information',
@@ -53,6 +57,14 @@ if __name__ == "__main__":
         logging.basicConfig(level=logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
+
+    if args.test:
+        import os
+        args.file = os.path.join(
+            os.path.dirname(__file__),
+            "../tests/data",
+            args.test,
+        )
 
     if args.url:
         response = requests.get(args.url, headers={'User-Agent': USER_AGENT})

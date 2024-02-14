@@ -125,5 +125,5 @@ if __name__ == '__main__':
     with open(os.path.join(FOLDER, FILENAME)) as fin:
         soup = BeautifulSoup(fin, 'html.parser')
 
-    do_extract(soup)
+    extract(soup)
 
