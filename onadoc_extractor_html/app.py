@@ -14,6 +14,11 @@ if __name__ == "__main__":
         help='dump the raw input HTML',
     )
     parser.add_argument(
+        '--dump-pretty', 
+        action='store_true',
+        help='dump HTML pretty printed', ## good for seeing if there's parser issues
+    )
+    parser.add_argument(
         '--dump-local', 
         action='store_true',
         help='dump the structure of the document before processing',
@@ -78,6 +83,9 @@ if __name__ == "__main__":
 
     if args.dump_raw:
         print(data)
+    elif args.dump_pretty:
+        soup = BeautifulSoup(data, "html.parser")
+        print(soup.prettify())
     elif args.dump_local:
         soup = BeautifulSoup(data, "html.parser")
         collectors.dump_local(soup, max_depth=args.max_depth)
