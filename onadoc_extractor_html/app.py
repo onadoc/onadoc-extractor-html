@@ -5,6 +5,7 @@ if __name__ == "__main__":
     import requests
     from bs4 import BeautifulSoup, PageElement
     from . import collectors
+    from .flatten import flatten
     import logging
             
     parser = argparse.ArgumentParser()
@@ -29,7 +30,12 @@ if __name__ == "__main__":
         help='dump the structure of the document after processing',
     )
     parser.add_argument(
-        '--max-depth',
+        '--dump-text', 
+        action='store_true',
+        help='only output text, not HTML',
+    )
+    parser.add_argument(
+        '--max-depth|depth',
         type=int,
         default=3,
         help='maximum depth to dump',
@@ -92,9 +98,19 @@ if __name__ == "__main__":
     elif args.dump_collected:
         soup = BeautifulSoup(data, "html.parser")
         collectors.dump_collected(soup, max_depth=args.max_depth)
-    else:
-        from .flatten import flatten
+    elif args.dump_text:
+        soup = BeautifulSoup(data, "html.parser")
+        best = collectors.extract(soup)
+        for node in flatten(best):
+            if node.name in [ "figcaption" ]:
+                continue
 
+            text = (node.text or "").strip()
+            if text:
+                # print(f"[{node.name}]")
+                print((node.text or "").strip())
+                print()
+    else:
         soup = BeautifulSoup(data, "html.parser")
         best = collectors.extract(soup)
 

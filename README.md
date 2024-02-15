@@ -24,14 +24,22 @@ pip install onadoc-extractor-html
 
 ## Command Line Usage
 
-### Extract text from a URL
+### Extract HTML from a URL
 
 ```bash
 python -m onadoc_extractor_html.app \
     --url 'https://arstechnica.com/space/2024/02/spacex-and-intuitive-machines-seek-to-blaze-a-new-trail-to-the-moon/'
 ```
 
-### Extract text from a file
+### Extract Text (only) from a URL
+
+```bash
+python -m onadoc_extractor_html.app \
+    --dump-text \
+    --url 'https://arstechnica.com/space/2024/02/spacex-and-intuitive-machines-seek-to-blaze-a-new-trail-to-the-moon/'
+```
+
+### Extract HTML from a file
 
 ```bash
 curl -s 'https://arstechnica.com/space/2024/02/spacex-and-intuitive-machines-seek-to-blaze-a-new-trail-to-the-moon/' > /tmp/article.html
