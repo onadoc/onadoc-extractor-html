@@ -1,5 +1,20 @@
 # onadoc-extractor-html
-Extract the "real" text from HTML
+
+Extract the core HTML content from a webpage. 
+This includes **text and images**.
+
+Output will be very similar to Safari's Reader mode.
+
+It is also similar to these other projects, with the caveat that
+our goal is to preserve some HTML and the image content.
+
+### Similar Projects
+
+* [readability]()
+* [goose3](https://github.com/goose3/goose3)
+* [newspaper3k](https://github.com/codelucas/newspaper/)
+* [boilerpy3](https://github.com/jmriebold/BoilerPy3)
+* [dragnet](https://github.com/dragnet-org/dragnet)
 
 ## Installation
 ```bash
