@@ -24,17 +24,18 @@ def mutate_find_leading(node:PageElement) -> PageElement:
                 break
 
             if child.name in [ "h1", "h2", "h3", "h4" ]:
-                header = child
+                headers = [ child ]
             elif child.name:
-                header = child.find(["h1", "h2", "h3", "h4"])
+                headers = child.find_all(["h1", "h2", "h3", "h4"])
             else:
-                header = None
-            if header:
-                logger.debug(f"{L}: HEADER {header.name} {repr(header.text)}")
-                cheader = copy.copy(header)
-                cheader.LOCAL = copy.copy(header.LOCAL)
-                cheader.COLLECTED = copy.copy(header.COLLECTED)
-                inserts.append(cheader)
+                headers = []
+            if headers:
+                for header in headers:
+                    logger.debug(f"{L}: HEADER {header.name} {repr(header.text)}")
+                    cheader = copy.copy(header)
+                    cheader.LOCAL = copy.copy(header.LOCAL)
+                    cheader.COLLECTED = copy.copy(header.COLLECTED)
+                    inserts.append(cheader)
 
         previous = current
         current = current.parent
